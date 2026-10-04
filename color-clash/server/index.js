@@ -88,9 +88,6 @@ function next(r){
   makeRound(r);
 }
 
-  makeRound(r);
-}
-
 io.on('connection',socket=>{
 
   socket.on('createRoom',({name})=>{
