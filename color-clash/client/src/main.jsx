@@ -18,20 +18,32 @@ function App(){
   return()=>{socket.off();};
  },[]);
 
- const join=(create=false)=>{
+const join=(create=false)=>{
   setError('');
 
   const n=name.trim().slice(0,18);
+  const r=room.trim().toUpperCase();
 
   if(!n)
     return setError('Enter a name first.');
+
+  if(!create&&!r)
+    return setError('Enter a room code.');
 
   const action=()=>{
     socket.emit(
       create?'createRoom':'joinRoom',
       {
         name:n,
-        room:room.trim().toUpperCase()
+        room:r
+      },
+      response=>{
+        if(!response?.ok){
+          setError(response?.error||'Unable to join room.');
+          return;
+        }
+
+        setError('');
       }
     );
   };
@@ -42,7 +54,7 @@ function App(){
     socket.connect();
     socket.once('connect',action);
   }
- };
+};
 
  const invite=()=>{const url=`${location.origin}/?room=${state?.room||''}`; navigator.clipboard?.writeText(url); setCopied(true); setTimeout(()=>setCopied(false),1600);};
 
