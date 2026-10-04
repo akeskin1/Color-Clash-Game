@@ -75,7 +75,7 @@ function makeRound(r){
 }
 
 function next(r){
-  if(!rooms.has(r.code) || r.status!=='playing')
+  if(!rooms.has(r.code)||r.status!=='playing')
     return;
 
   if(r.round>=10){
@@ -90,7 +90,17 @@ function next(r){
 
 io.on('connection',socket=>{
 
-  socket.on('createRoom',({name})=>{
+  socket.on('createRoom',({name},ack)=>{
+    const playerName=String(name||'').trim().slice(0,18);
+
+    if(!playerName){
+      if(ack) ack({
+        ok:false,
+        error:'Enter a name first.'
+      });
+      return;
+    }
+
     const r={
       code:code(),
       hostId:socket.id,
@@ -106,7 +116,7 @@ io.on('connection',socket=>{
 
     r.players.set(socket.id,{
       id:socket.id,
-      name:String(name).slice(0,18),
+      name:playerName,
       score:0
     });
 
@@ -114,38 +124,73 @@ io.on('connection',socket=>{
     socket.join(r.code);
     socket.data.room=r.code;
 
+    if(ack) ack({
+      ok:true,
+      room:r.code
+    });
+
     broadcast(r);
   });
 
-  socket.on('joinRoom',({name,room})=>{
-    const r=rooms.get(String(room||'').toUpperCase());
+  socket.on('joinRoom',({name,room},ack)=>{
+    const playerName=String(name||'').trim().slice(0,18);
+    const roomCode=String(room||'').trim().toUpperCase();
 
-    if(!r)
-      return socket.emit(
-        'errorMessage',
-        'Room not found. Check the code.'
-      );
+    if(!playerName){
+      if(ack) ack({
+        ok:false,
+        error:'Enter a name first.'
+      });
+      return;
+    }
 
-    if(r.status!=='lobby')
-      return socket.emit(
-        'errorMessage',
-        'That game has already started.'
-      );
+    if(!roomCode){
+      if(ack) ack({
+        ok:false,
+        error:'Enter a room code.'
+      });
+      return;
+    }
 
-    if(r.players.size>=4)
-      return socket.emit(
-        'errorMessage',
-        'That room is full.'
-      );
+    const r=rooms.get(roomCode);
+
+    if(!r){
+      if(ack) ack({
+        ok:false,
+        error:'Room not found. Check the code.'
+      });
+      return;
+    }
+
+    if(r.status!=='lobby'){
+      if(ack) ack({
+        ok:false,
+        error:'That game has already started.'
+      });
+      return;
+    }
+
+    if(r.players.size>=4){
+      if(ack) ack({
+        ok:false,
+        error:'That room is full.'
+      });
+      return;
+    }
 
     r.players.set(socket.id,{
       id:socket.id,
-      name:String(name).slice(0,18),
+      name:playerName,
       score:0
     });
 
     socket.join(r.code);
     socket.data.room=r.code;
+
+    if(ack) ack({
+      ok:true,
+      room:r.code
+    });
 
     broadcast(r);
   });
@@ -203,7 +248,6 @@ io.on('connection',socket=>{
     if(!r||r.status!=='finished'||r.hostId!==socket.id)
       return;
 
-    // A new game requires at least two players.
     if(r.players.size<2)
       return socket.emit(
         'errorMessage',
