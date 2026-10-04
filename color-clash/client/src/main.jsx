@@ -16,7 +16,24 @@ function App(){
   socket.on('errorMessage',m=>setError(m));
   return()=>{socket.off();};
  },[]);
- const join=(create=false)=>{setError(''); const n=name.trim().slice(0,18); if(!n)return setError('Enter a name first.'); socket.connect(); socket.once('connect',()=>{socket.emit(create?'createRoom':'joinRoom',{name:n,room:room.trim().toUpperCase()});});};
+const join=(create=false)=>{
+ setError('');
+ const n=name.trim().slice(0,18);
+ if(!n)return setError('Enter a name first.');
+
+ const action=()=>{
+  socket.emit(create?'createRoom':'joinRoom',{
+   name:n,
+   room:room.trim().toUpperCase()
+  });
+ };
+
+ if(socket.connected) action();
+ else {
+  socket.connect();
+  socket.once('connect',action);
+ }
+};
  const invite=()=>{const url=`${location.origin}/?room=${state?.room||''}`; navigator.clipboard?.writeText(url); setCopied(true); setTimeout(()=>setCopied(false),1600);};
  useEffect(()=>{const r=new URLSearchParams(location.search).get('room');if(r)setRoom(r);},[]);
  if(screen==='home')return <Home name={name} setName={setName} room={room} setRoom={setRoom} join={join} error={error}/>;
