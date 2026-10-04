@@ -75,12 +75,18 @@ function makeRound(r){
 }
 
 function next(r){
+  if(!rooms.has(r.code) || r.status!=='playing')
+    return;
+
   if(r.round>=10){
     r.status='finished';
     r.endsAt=0;
     broadcast(r);
     return;
   }
+
+  makeRound(r);
+}
 
   makeRound(r);
 }
