@@ -50,10 +50,17 @@ const join=(create=false)=>{
 
   if(socket.connected){
     action();
-  }else{
-    socket.connect();
-    socket.once('connect',action);
+    return;
   }
+
+  const handleConnect=()=>{
+    socket.off('connect',handleConnect);
+    action();
+  };
+
+  socket.once('connect',handleConnect);
+
+  socket.connect();
 };
 
  const invite=()=>{const url=`${location.origin}/?room=${state?.room||''}`; navigator.clipboard?.writeText(url); setCopied(true); setTimeout(()=>setCopied(false),1600);};
