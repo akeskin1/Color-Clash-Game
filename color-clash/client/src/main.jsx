@@ -17,9 +17,30 @@ function App(){
   return()=>{socket.off();};
  },[]);
 const join=(create=false)=>{
- setError('');
- const n=name.trim().slice(0,18);
- if(!n)return setError('Enter a name first.');
+  setError('');
+
+  const n=name.trim().slice(0,18);
+
+  if(!n)
+    return setError('Enter a name first.');
+
+  const action=()=>{
+    socket.emit(
+      create?'createRoom':'joinRoom',
+      {
+        name:n,
+        room:room.trim().toUpperCase()
+      }
+    );
+  };
+
+  if(socket.connected){
+    action();
+  }else{
+    socket.connect();
+    socket.once('connect',action);
+  }
+};
 
  const action=()=>{
   socket.emit(create?'createRoom':'joinRoom',{
